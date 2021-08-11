@@ -2,7 +2,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <net-session/session.h>
-#include <iostream>
 #include <string.h>
 #include <string>
 #include <time.h>

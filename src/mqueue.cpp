@@ -1,5 +1,5 @@
 #include <net-session/mqueue.h>
-#include <iostream>
+#include <string.h>
 
 //Create a message from a network stream
 Message::Message(const char* stream, int bytes)
