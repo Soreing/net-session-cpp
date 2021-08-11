@@ -1,13 +1,14 @@
-#include <net-session/udpsocket.h>
+#include <net-session/session.h>
 #include <iostream>
 
-//#define CLIENT
-#define SERVER
+#define CLIENT
+//#define SERVER
 
-#define BUFFER_SIZE 256
-void main()
+#define PORT 59000
+#define IP_ADR "192.168.2.184"
+
+int main()
 {
-
 #if defined _WIN32 || defined _WIN64
 	WSADATA wsa;
 	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
@@ -21,29 +22,22 @@ void main()
 	struct sockaddr_in host, peer;
 	host.sin_family = AF_INET;
 	host.sin_addr.s_addr = INADDR_ANY;
-	host.sin_port = htons(8888);
+	host.sin_port = htons(PORT);
 
 	sock.socket(SOCK_DGRAM);
 	sock.bind(&host);
 
-	char buffer[BUFFER_SIZE];	
-	while(true)
-	{	sock.recvfrom(buffer, BUFFER_SIZE, &peer);
-		std::cout<< buffer << "\n";
-	}
+	char buffer[256];
+	sock.recvfrom(buffer, 256, &peer);
+
+	Session ssn;
+	ssn.connect(peer);
+	while (ssn.state == Connected);
 #endif
 
 #ifdef CLIENT
-	UDPSocket sock;
-	struct sockaddr_in server;
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = inet_addr("127.0.0.1");
-	server.sin_port = htons(8888);
-
-	sock.socket(SOCK_DGRAM);
-	while(true)
-	{	sock.sendto("Hello", 6, &server);
-		Sleep(1000);
-	}
+	Session ssn;
+	ssn.connect(PORT, IP_ADR);
+	while (ssn.state == Connected);
 #endif
 }
