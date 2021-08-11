@@ -4,6 +4,7 @@
 #include <net-session/udpsocket.h>
 #include <string.h>
 #include <time.h>
+#include <iostream>
 
 #define LOCALHOST 16777343	//Network byte order address of 127.0.0.1
 
@@ -106,13 +107,32 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 	{
 		if(!raw)
 		{	allBytes  = ::recvfrom(sock, buffer, length, 0, (struct sockaddr*)addr, (socklen_t*)&arrdLen);
+			
+			if(allBytes == -1)
+			{	
+				#if defined PLATFORM_WINDOWS
+				if(WSAGetLastError() == 10040) {allBytes = length;}
+				#elif defined PLATFORM_UNIX
+				if(arrdLen > sizeof(struct sockaddr)) {allBytes = length;}
+				#endif
+			}
+
 			return allBytes;
 		}
 		else
 		{	allBytes  = ::recvfrom(sock, buffer, length, 0, NULL, NULL);
 			ipheader  = (IPV4_HDR*)buffer;
 
-			if (allBytes < 0 || ntohs(ipheader->ip_length) != allBytes)
+			if(allBytes == -1)
+			{	
+				#if defined PLATFORM_WINDOWS
+				if(WSAGetLastError() == 10040) {allBytes = length;}
+				#elif defined PLATFORM_UNIX
+				if(arrdLen > sizeof(struct sockaddr)) {allBytes = length;}
+				#endif
+			}
+
+			if (allBytes < 0 || ntohs(ipheader->ip_length) < allBytes)
 			{	return -1;
 			}
 
@@ -123,7 +143,7 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 			if (udpHeader->dstport == htons(inPort))
 			{
 				if (datBytes > length)
-				{	return -1;
+				{	datBytes = allBytes - sizeof(UDP_HDR) - sizeof(IPV4_HDR);
 				}
 
 				addr->sin_family = AF_INET;

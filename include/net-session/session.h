@@ -1,6 +1,7 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include "mqueue.h"
 #include "udpsocket.h"
 #include "cplatforms.h"
 #include "cpevent.h"
@@ -16,6 +17,7 @@ class Session
 public:
 	struct sockaddr_in peer;	//Address of the remote peer
 	UDPSocket ssock;			//Socket ofthe communication
+	bool raw;
 
 	long long lastRecv;			//Unix timestamp of the last successful packet received
 	int refreshFreq;			//Frequency of sending a keepalive packet in seconds
@@ -27,10 +29,13 @@ public:
 	signal sigConn;				//Signal to alert other threads that connecting state is over
 	mutex  mtx;					//Mutex lock to guarantee thread safety
 
+	int msgID;					//ID number of the message being sent (increments)
+	MessageQueue* queue;		//Message Queue for storing messages	
+
 public:
 	//Initializes all members of the class and allocates memory for the messageQueue
 	//Can throw Session Exceptions if WSA or the socket fails to initialize
-	Session();
+	Session(bool raw = false);
 
 	//Closes the session and deletes the messageQueue
 	~Session();
@@ -51,6 +56,12 @@ public:
 	//The process is mutex locked to prevent threads interacting with the object
 	void disconnect();
 
+	//Sends a stream of bytes over the socket
+	//Can throw a Session Exception if the session is not not connected
+	int send(const char* msg, int length);
+
+	//Extracts information from the message queue
+	int recv(char* buf, int size);
 
 };
 #endif

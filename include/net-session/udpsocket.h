@@ -12,7 +12,7 @@
 	typedef int SOCKET;
 #endif
 
-//A Cross platform encapsulation of sockets with UDP type, normal or raw
+//A Cross platform encapsulation of sockets with UDP protocol, datagram or raw socket type
 //Raw sockets allow for more customization and get more detail from packets
 //Customization includes creating the packet headers instead of the Network and Transport Layer
 class UDPSocket
@@ -39,6 +39,8 @@ public:
 	//Returns the socket's value on success, -1 on failure
 	int socket(int type);
 
+	//Binds a socket to a port to listen
+	//Returns 0 on success, -1 on error
 	int bind(struct sockaddr_in* addr);
 
 	//Sends data through the socket to the address specified
@@ -57,8 +59,8 @@ private:
 	unsigned long rsock_x_rand();
 
 	//Identifies the host's preferred DHCP Address
-	//Returns the address in network byte order. It returns -1 if the host has no name,
-	//-2 if it has no adapters or -3 if not connected to a network
+	//Returns the address in network byte order. 
+	//It returns -1 if the host has no name,
 	unsigned long getSourceAddr(unsigned int addr);
 };
 

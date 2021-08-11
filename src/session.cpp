@@ -4,10 +4,13 @@
 #include <net-session/session.h>
 #include <iostream>
 #include <string.h>
+#include <string>
 #include <time.h>
 
 #define KAL 1	//Flag for keepalive messages
 #define MSG 4	//Flag for real messages
+
+#define HDR_SIZE 9
 
 #if defined PLATFORM_WINDOWS
 	#include <processthreadsapi.h>
@@ -41,7 +44,7 @@ THREAD_T keepalive(void* lparam)
 		now = time(NULL);
 
 		ssn->mtx.lock();
-		// If the keepalife packet failed or the session timed out, quit
+		// If the keepalive packet failed or the session timed out, quit
 		if (traffic <= 0 || now - ssn->lastRecv > ssn->maxTimeout)
 		{
 			std::cout<< "Session Failed In Keepalive...\n";
@@ -74,12 +77,12 @@ THREAD_T receive(void* lparam)
 	int  packetID = 0;
 	int  traffic  = 0;
 	int  promised = 0;
-	char buffer[512];
+	char buffer[513];
+	buffer[512]=0;
 
 	while (ssn->state != Closed)
 	{
 		// Read data from the peer
-		std::cout<< "Receiving Data from Peer...\n";
 		traffic = ssn->ssock.recvfrom(buffer, 512, &ssn->peer);
 
 		// If no data was sent or an error occuted, quit
@@ -103,24 +106,23 @@ THREAD_T receive(void* lparam)
 		
 		// If it's a message
 		if(buffer[0] == MSG)
-		{	
+		{	ssn->queue->add(buffer, traffic);
 		}
 
 	}
 
-	ssn->mtx.lock();
-	ssn->thrReceive = NULL;
-	ssn->mtx.unlock();
 	std::cout<< "Receive Quit...\n";
+	ssn->thrReceive = NULL;
 	EXIT_THREAD(0);
 }
 
 
-Session::Session() 
-	:	thrReceive(NULL), thrKeepalive(NULL), 
-		lastRecv(0), refreshFreq(5), maxTimeout(5), state(Closed)
+Session::Session(bool raw) 
+	:	thrReceive(NULL), thrKeepalive(NULL), raw(raw),
+		lastRecv(0), refreshFreq(5), maxTimeout(5), state(Closed),
+		msgID(0), queue(new MessageQueue)
 {
-	if (ssock.socket(SOCK_DGRAM) == -1)
+	if (ssock.socket(raw ? SOCK_RAW : SOCK_DGRAM) == -1)
 	{	throw "Error";
 	}
 }
@@ -128,6 +130,7 @@ Session::Session()
 Session::~Session() 
 {
 	disconnect();  
+	delete queue;
 }
 
 int Session::connect(int port, const char* hostname)
@@ -149,6 +152,8 @@ int Session::connect(int port, const char* hostname)
 
 int Session::connect(struct sockaddr_in addr)
 {
+	disconnect();
+
 	char packet = KAL;
 	lastRecv = time(NULL);
 	state = Connecting;
@@ -187,7 +192,39 @@ void Session::disconnect()
 		}
 
 		state = Closed;
+		queue->clear();
 		std::cout<< "Disconnected...\n";
 	}
 	mtx.unlock();
+}
+
+int Session::send(const char* msg, int length)
+{
+	int sent  = 0;
+	char *str = new char[length + 9];
+
+	mtx.lock();
+
+	*(char*)(str + 0) = MSG;
+	*(int*)(str + 1)  = msgID;
+	*(int*)(str + 5)  = length;
+	memcpy(str + 9, msg, length);
+
+	sent = ssock.sendto(str, length + 9, &peer);
+	delete[] str;
+	msgID++;
+	
+	if(sent <= 0)
+	{	mtx.unlock();
+		disconnect();
+		return -1;
+	}
+
+	mtx.unlock();
+	return sent;
+}
+
+int Session::recv(char* buf, int size)
+{
+	return queue->get(buf, size);
 }
