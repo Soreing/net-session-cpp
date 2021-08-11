@@ -7,10 +7,10 @@
 #include <string>
 #include <time.h>
 
-#define KAL 1	//Flag for keepalive messages
-#define MSG 4	//Flag for real messages
+#define KAL 1		//Flag for keepalive messages
+#define MSG 4		//Flag for real messages
 
-#define HDR_SIZE 9
+#define HDR_SIZE 9	//Message Header Size
 
 #if defined PLATFORM_WINDOWS
 	#include <processthreadsapi.h>
@@ -30,6 +30,8 @@
 	#define EXIT_THREAD(val) return (void*)val
 #endif
 
+//Sends Keepalive packets till the connection is closed
+//If the socket encounters an error or the session times out, disconnects
 THREAD_T keepalive(void* lparam)
 {
 	Session* ssn  = (Session*)lparam;
@@ -39,16 +41,14 @@ THREAD_T keepalive(void* lparam)
 
 	while (ssn->state != Closed)
 	{
-		// Send a keepalive packet and note down the time
+		//Send a keepalive packet and note down the time
 		traffic = ssn->ssock.sendto(&buffer, 1, &ssn->peer);
 		now = time(NULL);
 
 		ssn->mtx.lock();
-		// If the keepalive packet failed or the session timed out, quit
+		//If the keepalive packet failed or the session timed out, quit
 		if (traffic <= 0 || now - ssn->lastRecv > ssn->maxTimeout)
-		{
-			std::cout<< "Session Failed In Keepalive...\n";
-			ssn->thrKeepalive = NULL;
+		{	ssn->thrKeepalive = NULL;
 			ssn->mtx.unlock();
 
 			ssn->disconnect();
@@ -56,7 +56,7 @@ THREAD_T keepalive(void* lparam)
 		}
 		ssn->mtx.unlock();
 
-		// Sleep till the next keepalive packet
+		//Sleep till the next keepalive packet
 		#if defined PLATFORM_WINDOWS
 			Sleep(ssn->state == Connecting ? 1000 : (1000 * ssn->refreshFreq));
 		#elif defined PLATFORM_UNIX
@@ -64,36 +64,35 @@ THREAD_T keepalive(void* lparam)
 		#endif
 	}
 
-	ssn->mtx.lock();
 	ssn->thrKeepalive = NULL;
-	ssn->mtx.unlock();
-	std::cout<< "Keepalive Quit...\n";
 	EXIT_THREAD(0);
 }
 
+//Listens and Receives data from the socket till it's closed
+//Keepalive packets refresh the conenction time
+//Sets the session to connected on the first packet if it was connecting
+//Messages are added to the message queue
+//If the socket encounters an error, disconnects
 THREAD_T receive(void* lparam)
 {
 	Session* ssn = (Session*)lparam;
 	int  packetID = 0;
 	int  traffic  = 0;
 	int  promised = 0;
-	char buffer[513];
-	buffer[512]=0;
+	char buffer[1024];
 
 	while (ssn->state != Closed)
 	{
-		// Read data from the peer
+		//Read data from the peer
 		traffic = ssn->ssock.recvfrom(buffer, 512, &ssn->peer);
 
-		// If no data was sent or an error occuted, quit
+		//If no data was sent or an error occuted, quit
 		if (traffic <= 0)
-		{
-			std::cout<< "Session Failed In Receive...\n";
-			ssn->thrReceive = NULL;
+		{	ssn->thrReceive = NULL;
 			ssn->disconnect();
 			EXIT_THREAD(-1);
 		}
-		// If the connection was connecting, set it to connected
+		//If the connection was connecting, set it to connected
 		else
 		{	ssn->mtx.lock();
 			ssn->lastRecv = time(NULL);
@@ -104,19 +103,19 @@ THREAD_T receive(void* lparam)
 			ssn->mtx.unlock();
 		}
 		
-		// If it's a message
+		//If it's a message, add itto the message quee
 		if(buffer[0] == MSG)
 		{	ssn->queue->add(buffer, traffic);
 		}
 
 	}
 
-	std::cout<< "Receive Quit...\n";
 	ssn->thrReceive = NULL;
 	EXIT_THREAD(0);
 }
 
-
+//Create a new session object with default parameters
+//Optional parameter "raw" indicates usage of SOCK_RAW instead of DGRAM
 Session::Session(bool raw) 
 	:	thrReceive(NULL), thrKeepalive(NULL), raw(raw),
 		lastRecv(0), refreshFreq(5), maxTimeout(5), state(Closed),
@@ -127,12 +126,15 @@ Session::Session(bool raw)
 	}
 }
 
+//Disconencts any active connection and deletes the message queue
 Session::~Session() 
 {
 	disconnect();  
 	delete queue;
 }
 
+//Creates an address info structure from the port and host address
+//Attempts to connect to the address. Returns -1 if no address found
 int Session::connect(int port, const char* hostname)
 {
 	hostent *hostIP;
@@ -150,6 +152,10 @@ int Session::connect(int port, const char* hostname)
 	return connect(addr);
 }
 
+//Disconnects any previous connection and connects to a new address
+//Opens the communication, then the keepalive and receiving threads are started
+//Waits till the receiving thread confirms a connection or times out
+//Returns 0 if sucessfully connected or -1 on error
 int Session::connect(struct sockaddr_in addr)
 {
 	disconnect();
@@ -165,10 +171,11 @@ int Session::connect(struct sockaddr_in addr)
 	CREATE_THREAD(thrReceive, receive, this);
 
 	sigConn.wait();
-	return state == Connected ? 1 : 0;
+	return state == Connected ? 0 : -1;
 }
 
-
+//Terminates all active threads and closes the socket
+//Clears the message queue and sets the state to closed
 void Session::disconnect()
 {
 	mtx.lock();
@@ -193,11 +200,11 @@ void Session::disconnect()
 
 		state = Closed;
 		queue->clear();
-		std::cout<< "Disconnected...\n";
 	}
 	mtx.unlock();
 }
 
+//Sends a stream of bytes over the socket
 int Session::send(const char* msg, int length)
 {
 	int sent  = 0;
@@ -224,6 +231,7 @@ int Session::send(const char* msg, int length)
 	return sent;
 }
 
+//Extracts information from the message queue
 int Session::recv(char* buf, int size)
 {
 	return queue->get(buf, size);

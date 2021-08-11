@@ -42,7 +42,8 @@ int UDPSocket::socket(int type)
 	return sock == 0 ? -1 : (int)sock;
 }
 
-
+//Binds a socket to a port to listen
+//Returns 0 on success, -1 on error
 int UDPSocket::bind(struct sockaddr_in* addr)
 {
 	inPort  = ntohs(addr->sin_port);

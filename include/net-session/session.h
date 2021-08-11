@@ -6,8 +6,6 @@
 #include "cplatforms.h"
 #include "cpevent.h"
 
-#include <iostream>
-
 enum ConnState { Closed = 1, Connecting = 2, Connected=3 };
 
 //Session is a cross platform encapsulation of C sockets to create a live connection between peers using datagrams
@@ -33,31 +31,28 @@ public:
 	MessageQueue* queue;		//Message Queue for storing messages	
 
 public:
-	//Initializes all members of the class and allocates memory for the messageQueue
-	//Can throw Session Exceptions if WSA or the socket fails to initialize
+	//Create a new session object with default parameters
+	//Optional parameter "raw" indicates usage of SOCK_RAW instead of DGRAM
 	Session(bool raw = false);
 
-	//Closes the session and deletes the messageQueue
+	//Disconencts any active connection and deletes the message queue
 	~Session();
 
-	//Creates an address info structure from the port and host address and attempts to connect to it
-	//If a connection is made, the keepalive and receiving threads are started
-	//Can throw Session Exception if the connection times out, the socket is unable to send/receive 
-	//Or if the peer is not accepting connections, or if the host given has no address/can't be found
+	//Creates an address info structure from the port and host address
+	//Attempts to connect to the address. Returns -1 if no address found
 	int connect(int port, const char* addr);
 
-	//Attempts to connect to the return address information provided
-	//If a connection is made, the keepalive and receiving threads are started
-	//Can throw Session Exception if the connection times out, the socket is unable to send/receive 
-	//Or if the peer is not accepting connections
+	//Disconnects any previous connection and connects to a new address
+	//Opens the communication, then the keepalive and receiving threads are started
+	//Waits till the receiving thread confirms a connection or times out
+	//Returns 0 if sucessfully connected or -1 on error
 	int connect(struct sockaddr_in addr);
 
 	//Terminates all active threads and closes the socket
-	//The process is mutex locked to prevent threads interacting with the object
+	//Clears the message queue and sets the state to closed
 	void disconnect();
 
 	//Sends a stream of bytes over the socket
-	//Can throw a Session Exception if the session is not not connected
 	int send(const char* msg, int length);
 
 	//Extracts information from the message queue
