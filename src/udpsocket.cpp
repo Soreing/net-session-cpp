@@ -133,11 +133,11 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 				#endif
 			}
 
-			if (allBytes < 0 || ntohs(ipheader->ip_length) < allBytes)
+			if (allBytes < 0 || ntohs(ipheader->getPacketLength()) < allBytes)
 			{	return -1;
 			}
 
-			udpHeader = (UDP_HDR*)(buffer + (4 * ipheader->ip_hl));
+			udpHeader = (UDP_HDR*)(buffer + (4 * ipheader->getHeaderLength()));
 			datBytes  = ntohs(udpHeader->length) - sizeof(UDP_HDR);
 
 			mtx.lock();
@@ -149,7 +149,7 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 
 				addr->sin_family = AF_INET;
 				addr->sin_port = udpHeader->srcport;
-				addr->sin_addr.s_addr = ipheader->ip_srcaddr;
+				addr->sin_addr.s_addr = ipheader->getSrcAddress();
 				mtx.unlock();
 
 				memcpy(buffer, buffer + (allBytes-datBytes), datBytes);

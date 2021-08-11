@@ -8,7 +8,7 @@ typedef unsigned int u_int;
 
 class IPV4_HDR
 {
-public:
+private:
 	u_char ip_hl : 4;				//Header Length
 	u_char ip_v : 4;				//Version Number
 
@@ -37,6 +37,11 @@ public:
 	IPV4_HDR& checksum(u_short len);
 	IPV4_HDR& load(char* buffer);
 	IPV4_HDR& print();
+
+	//Getters and Setters
+	inline u_char  getHeaderLength() {return ip_hl;}
+	inline u_short getPacketLength() {return ip_length;}
+	inline u_short getSrcAddress() {return ip_srcaddr;}
 };
 
 

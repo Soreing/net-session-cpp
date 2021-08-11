@@ -1,10 +1,10 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "mqueue.h"
-#include "udpsocket.h"
 #include "cplatforms.h"
 #include "cpevent.h"
+#include "udpsocket.h"
+#include "mqueue.h"
 
 enum ConnState { Closed = 1, Connecting = 2, Connected=3 };
 
@@ -12,7 +12,7 @@ enum ConnState { Closed = 1, Connecting = 2, Connected=3 };
 //Main functionality of the class is to expedite and maintain UDP connections and queue messages
 class Session
 {
-public:
+private:
 	struct sockaddr_in peer;	//Address of the remote peer
 	UDPSocket ssock;			//Socket ofthe communication
 	bool raw;
@@ -35,9 +35,6 @@ public:
 	//Optional parameter "raw" indicates usage of SOCK_RAW instead of DGRAM
 	Session(bool raw = false);
 
-	//Disconencts any active connection and deletes the message queue
-	~Session();
-
 	//Creates an address info structure from the port and host address
 	//Attempts to connect to the address. Returns -1 if no address found
 	int connect(int port, const char* addr);
@@ -58,5 +55,19 @@ public:
 	//Extracts information from the message queue
 	int recv(char* buf, int size);
 
+	//Getters and Setters
+	inline ConnState getState() {return state;}
+
+	//Disconencts any active connection and deletes the message queue
+	~Session();
+
+	//Thread friend declarations
+	#if defined PLATFORM_WINDOWS
+		friend DWORD WINAPI keepalive(void* lparam);
+		friend DWORD WINAPI receive(void* lparam);
+	#elif defined PLATFORM_UNIX
+		friend void* keepalive(void* lparam);
+		friend void* receive(void* lparam);
+	#endif
 };
 #endif

@@ -91,11 +91,11 @@ void MessageQueue::add(Message m)
     if(cur == NULL)
     {   head = new MessageNode{m, NULL};
     }
-    else if(cur->msg.id > m.id)
+    else if(cur->msg.getID() > m.getID())
     {   head = new MessageNode{m, cur};
     }
     else
-    {   while (cur->next != NULL && cur->next->msg.id < m.id)
+    {   while (cur->next != NULL && cur->next->msg.getID() < m.getID())
         {   cur = cur->next;
         }
         cur->next = new MessageNode{m, cur->next};

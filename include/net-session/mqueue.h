@@ -7,7 +7,7 @@
 //Unit of a network message
 class Message
 {
-public:
+private:
     int id;         //ID of the message
     int length;     //Length in bytes of the content
     bool trunc;     //Indicator for the message being truncated
@@ -22,6 +22,9 @@ public:
     //Extracts some or all of the content from the message to a buffer
     //If the message was partially extracted, the length and content is updated
     bool read(char* buff, int size, int &bytes);
+
+    //Getters and Setters
+    inline int getID(){return id;}
 
     //Deallocates the memory for the content
     ~Message();

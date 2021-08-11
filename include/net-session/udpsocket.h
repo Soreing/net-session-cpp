@@ -17,7 +17,7 @@
 //Customization includes creating the packet headers instead of the Network and Transport Layer
 class UDPSocket
 {
-public:
+private:
 	u_long rseed;		//Random Seed for port and packet ID
 
 	IPV4_HDR ihdr;		//IP Header object

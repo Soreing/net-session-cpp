@@ -37,7 +37,7 @@ int main()
 
 	std::string str;
 	char msg[6] = {0,0,0,0,0,0};
-	while (ssn.state == Connected)
+	while (ssn.getState() == Connected)
 	{	ssn.recv(msg, 5);
 		std::cout<< msg <<"\n";
 
@@ -50,7 +50,7 @@ int main()
 	std::cout<< "Connection Made!\n";
 
 	std::string str;
-	while (ssn.state == Connected)
+	while (ssn.getState() == Connected)
 	{	getline(std::cin, str);
 		ssn.send(str.c_str(), str.length()+1);
 	}
