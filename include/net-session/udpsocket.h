@@ -1,10 +1,14 @@
 #ifndef UDPSOCKET_H
 #define UDPSOCKET_H
 
-#include "sockhdr.h"
+#include "cplatforms.h"
 #include "cpmutex.h"
+#include "sockhdr.h"
 
-#ifdef UNIX_PLATFORM
+#if defined PLATFORM_WINDOWS
+	#include <windows.h>
+#elif defined PLATFORM_UNIX
+	#include <netinet/in.h>
 	typedef int SOCKET;
 #endif
 

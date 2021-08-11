@@ -2,17 +2,21 @@
 
 #include <net-session/cplatforms.h>
 #include <net-session/udpsocket.h>
+#include <string.h>
 #include <time.h>
-//#include <stdlib.h>
-//#include <stdio.h>
-//#include <iostream>
 
 #define LOCALHOST 16777343	//Network byte order address of 127.0.0.1
-#define IP_HDRINCL 2		//Defined macro for IP_HDRINCL
+
+#if defined PLATFORM_WINDOWS
+	#define IP_HDRINCL 2
+	typedef int socklen_t;
+#endif
 
 //Default constructor for UDPSocket
 //Does not create the socket, just initializes it
-UDPSocket::UDPSocket() : rseed(time(NULL)), sock(0), raw(false), inPort(0), packID(0), locAddr(0)
+UDPSocket::UDPSocket() 
+	:	rseed((u_long)time(NULL)), sock(0), raw(false), 
+		inPort(0), packID(0), locAddr(0)
 {
 }
 
@@ -34,7 +38,7 @@ int UDPSocket::socket(int type)
 	}
 	mtx.unlock();
 
-	return sock == 0 ? -1 : sock;
+	return sock == 0 ? -1 : (int)sock;
 }
 
 
@@ -74,7 +78,7 @@ int UDPSocket::sendto(const char* buffer, int length, struct sockaddr_in* addr)
 			.load(packet);
 		
 		uhdr.setPort(inPort, ntohs(addr->sin_port))
-			.setLength(packetlen-sizeof(IPV4_HDR))
+			.setLength( (u_short)(packetlen-sizeof(IPV4_HDR)) )
 			.load(packet+sizeof(IPV4_HDR));
 
 		memcpy(packet + sizeof(IPV4_HDR) + sizeof(UDP_HDR), buffer, length);
@@ -101,7 +105,7 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 	for (; sock > 0;)
 	{
 		if(!raw)
-		{	allBytes  = ::recvfrom(sock, buffer, length, 0, (struct sockaddr*)addr, &arrdLen);
+		{	allBytes  = ::recvfrom(sock, buffer, length, 0, (struct sockaddr*)addr, (socklen_t*)&arrdLen);
 			return allBytes;
 		}
 		else
@@ -133,6 +137,8 @@ int UDPSocket::recvfrom(char* buffer, int length, struct sockaddr_in* addr)
 			mtx.unlock();
 		}
 	}
+
+	return 0;
 }
 
 //Closes the socket and sets every value but the random seed to 0
@@ -169,7 +175,7 @@ unsigned long UDPSocket::rsock_x_rand()
 //-2 if it has no adapters or -3 if not connected to a network
 unsigned long UDPSocket::getSourceAddr(unsigned int addr)
 {
-	int sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+	int sock = (int)::socket(AF_INET, SOCK_DGRAM, 0);
 	int addrlen = sizeof(sockaddr_in);
 
 	sockaddr_in loopback;
@@ -181,7 +187,7 @@ unsigned long UDPSocket::getSourceAddr(unsigned int addr)
 	{	return -1;
 	}
 
-	if (getsockname(sock, (struct sockaddr*)&loopback, &addrlen) == -1)
+	if (getsockname(sock, (struct sockaddr*)&loopback, (socklen_t*)&addrlen) == -1)
 	{	return -1;
 	}
 

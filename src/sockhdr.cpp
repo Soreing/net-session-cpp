@@ -1,16 +1,40 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
+#include <net-session/cplatforms.h>
 #include <net-session/sockhdr.h>
-#include <winsock2.h>
+
 #include <iostream>
+#include <string.h>
+
+#if defined PLATFORM_WINDOWS
+	#include <winsock2.h>
+#elif defined PLATFORM_UNIX
+	#include <arpa/inet.h>
+	#include <netdb.h>
+#endif
+
 
 #pragma comment(lib,"ws2_32.lib")
 
-IPV4_HDR::IPV4_HDR() : ip_hl(5), ip_v(4), ip_tos(0), ip_length(0), ip_id(0), ip_frag_offset(0), ip_more_fragment(0), ip_dont_fragment(1), ip_reserved_zero(0), ip_frag_offset1(0), ip_ttl(0x80), ip_protocol(0), ip_checksum(0), ip_srcaddr(0), ip_dstaddr(0) { }
+IPV4_HDR::IPV4_HDR() 
+	: 	ip_hl(5), ip_v(4),
+		ip_tos(0), ip_length(0), ip_id(0), 
+		ip_frag_offset(0), ip_more_fragment(0), ip_dont_fragment(1), ip_reserved_zero(0), ip_frag_offset1(0), 
+		ip_ttl(0x80), ip_protocol(0), ip_checksum(0), ip_srcaddr(0), ip_dstaddr(0) 
+{ 
+}
 
-IPV4_HDR& IPV4_HDR::setID(u_short id) { ip_id = ntohs(id); return *this; }
+IPV4_HDR& IPV4_HDR::setID(u_short id)
+{	
+	ip_id = ntohs(id); 
+	return *this; 
+}
 
-IPV4_HDR& IPV4_HDR::setProtocol(u_char ipproto) { ip_protocol = ipproto; return *this; }
+IPV4_HDR& IPV4_HDR::setProtocol(u_char ipproto)
+{ 
+	ip_protocol = ipproto; 
+	return *this; 
+}
 
 IPV4_HDR& IPV4_HDR::setAddress(u_long dst, u_long src)
 {
@@ -22,11 +46,9 @@ IPV4_HDR& IPV4_HDR::setAddress(u_long dst, u_long src)
 IPV4_HDR& IPV4_HDR::setAddress(const char* dst, const char *src)
 {
 	hostent* dsthost = gethostbyname(dst);
-	//ip_dstaddr = inet_addr((dsthost != NULL ? dsthost->h_addr_list[0] : dst));
 	ip_dstaddr = inet_addr(dst);
 
 	hostent* srchost = gethostbyname(src);
-	//ip_srcaddr = inet_addr((srchost != NULL ? srchost->h_addr_list[0] : src));
 	ip_srcaddr = inet_addr(src);
 
 	return *this;
@@ -72,11 +94,24 @@ IPV4_HDR& IPV4_HDR::print()
 }
 
 
-UDP_HDR::UDP_HDR() : srcport(0), dstport(0), length(0), chksum(0) {}
+UDP_HDR::UDP_HDR() 
+	: 	srcport(0), dstport(0), 
+		length(0), chksum(0) 
+{
+}
 
-UDP_HDR& UDP_HDR::setPort(u_short src, u_short dst) { srcport = htons(src); dstport = htons(dst); return *this; }
+UDP_HDR& UDP_HDR::setPort(u_short src, u_short dst)
+{	
+	srcport = htons(src); 
+	dstport = htons(dst); 
+	return *this;
+}
 
-UDP_HDR& UDP_HDR::setLength(u_short len) { length = htons(len); return *this; }
+UDP_HDR& UDP_HDR::setLength(u_short len)
+{ 
+	length = htons(len); 
+	return *this; 
+}
 
 UDP_HDR& UDP_HDR::checksum(const char* data, u_short len) 
 {
