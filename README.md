@@ -1,10 +1,10 @@
 # net-session-cpp
 
-# Installation
-Add the folder `net-session` from `/include` in your include path. If you want to compile the library from source, add all `.cpp` files but `source.cpp` from the `/src` folder. Alternatively, you can compile the source code to a static library and include it that way.
-
 # Description
 net-session-cpp is a Windows/Linux cross platform C++ library that establishes and maintains a network connection between peers using UDP protocol. After the connection has been established, the session sends keepalive packets to maintain the connection and listens to messages that get stored in a message queue.
+
+# Installation
+Add the folder `net-session` from `/include` in your include path. If you want to compile the library from source, add all `.cpp` files but `source.cpp` from the `/src` folder. Alternatively, you can compile the source code to a static library and include it that way.
 
 # Basic Usage
 Sessions are created through an interface class to ensure the management of the resources is not disrupted. You can create an `ISession` object, which you will need to `close()` when you are finished to avoid memory leaks.  
