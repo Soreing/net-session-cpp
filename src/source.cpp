@@ -5,6 +5,7 @@
 //#define CLIENT
 #define SERVER
 
+#define BUF_LEN 1024
 #define PORT 59000
 #define IP_ADR "192.168.2.184"
 
@@ -20,6 +21,11 @@ int main()
 
 #ifdef SERVER
 	UDPSocket sock;
+	ISession ssn;
+
+	char buffer[BUF_LEN];
+	int bytes;
+
 	struct sockaddr_in host, peer;
 	host.sin_family = AF_INET;
 	host.sin_addr.s_addr = INADDR_ANY;
@@ -28,31 +34,46 @@ int main()
 	sock.socket(SOCK_DGRAM);
 	sock.bind(&host);
 
-	char buffer[1024];
-	int rv = sock.recvfrom(buffer, 1024, &peer);
+	bytes = sock.recvfrom(buffer, BUF_LEN, &peer);
+	if(bytes > 0)
+	{	std::cout<< "Connection Made!\n";
+		ssn.connect(peer);
 
-	Session ssn;
-	ssn.connect(peer);
-	std::cout<< "Connection Made!\n";
-
-	std::string str;
-	char msg[6] = {0,0,0,0,0,0};
-	while (ssn.getState() == Connected)
-	{	ssn.recv(msg, 5);
-		std::cout<< msg <<"\n";
-
+		std::string str;
+		while (ssn.getState() == Connected)
+		{	bytes = ssn.recv(buffer, BUF_LEN);
+			if(bytes > 0)
+			{	ssn.send(buffer, bytes+1);
+			}
+		}
 	}
+
+	ssn.close();
 #endif
 
 #ifdef CLIENT
-	Session ssn;
-	ssn.connect(PORT, IP_ADR);
-	std::cout<< "Connection Made!\n";
+	ISession ssn;
+
+	char buffer[BUF_LEN];
+	int bytes;
+
+	if( ssn.connect(PORT, IP_ADR) == 0 )
+	{	std::cout<< "Connection Made!\n";
+	}
 
 	std::string str;
 	while (ssn.getState() == Connected)
-	{	getline(std::cin, str);
+	{	std::cout<< "<Client> ";
+		getline(std::cin, str);
+
 		ssn.send(str.c_str(), str.length()+1);
+		bytes = ssn.recv(buffer, BUF_LEN);
+
+		if(bytes > 0)
+		{	std::cout<< "<Server> " << buffer <<"\n";
+		}
 	}
+
+	ssn.close();
 #endif
 }

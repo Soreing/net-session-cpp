@@ -70,4 +70,28 @@ public:
 		friend void* receive(void* lparam);
 	#endif
 };
+
+
+//Interface wrapper for Sessions
+//Use this class for interacting with a Session object
+class ISession
+{
+private:
+	Session* ssn;		//Pointer to the session
+
+public:
+	inline ISession(bool raw = false) : ssn(new Session(raw)) { }
+
+	inline int connect(int port, const char* addr) { return ssn->connect(port, addr); }
+	inline int connect(struct sockaddr_in addr)    { return ssn->connect(addr); }
+	
+	inline void disconnect() { ssn->disconnect(); }
+	
+	inline int send(const char* msg, int length) { return ssn->send(msg, length); }
+	inline int recv(char* buf, int size) { return ssn->recv(buf, size); }
+
+	inline void close() { delete ssn; }
+
+	inline ConnState getState() { return ssn->getState(); }
+};
 #endif
