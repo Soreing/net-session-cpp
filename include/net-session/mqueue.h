@@ -44,6 +44,7 @@ private:
     MessageNode* head;  //First message in the Queue
     mutex mtx;          //Mutext Lock for thread safety
     signal sig;         //Signal that fires when messages get added
+    bool alive;         //Indicator of the queue being alive
 
 public:
     MessageQueue();
@@ -60,6 +61,10 @@ public:
     //Extracts some data from the message queue
     //If all the message got consumed, it gets deleted
     int  get(char* buffer, int size);
+
+    //Sets the signal to release threads from get()
+    inline void setSig() { sig.set(); }
+    inline void setAlive(bool a) { alive = a; }
 
     //Deletes all nodes
     ~MessageQueue();

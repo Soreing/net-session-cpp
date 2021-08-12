@@ -61,7 +61,7 @@ Message::~Message()
 }
 
 
-MessageQueue::MessageQueue() : head(NULL)
+MessageQueue::MessageQueue() : head(NULL), alive(false)
 {
 }
 
@@ -119,8 +119,8 @@ int MessageQueue::get(char* buffer, int size)
     MessageNode* nxt = NULL;
     bool consumed;
     int bytes;
-    
-    while(true)
+
+    while(alive)
     {   
         if(head == NULL)
         {    sig.wait();
@@ -143,6 +143,8 @@ int MessageQueue::get(char* buffer, int size)
 
         mtx.unlock();
     } 
+
+    return -1;
 }
 
 //Deletes all nodes

@@ -96,7 +96,8 @@ THREAD_T receive(void* lparam)
 		{	ssn->mtx.lock();
 			ssn->lastRecv = time(NULL);
 			if (ssn->state == Connecting)
-			{	ssn->state = Connected;
+			{	ssn->queue->setAlive(false);
+				ssn->state = Connected;
 				ssn->sigConn.set();
 			}
 			ssn->mtx.unlock();
@@ -199,6 +200,8 @@ void Session::disconnect()
 
 		state = Closed;
 		queue->clear();
+		queue->setAlive(false);
+		queue->setSig();
 	}
 	mtx.unlock();
 }
